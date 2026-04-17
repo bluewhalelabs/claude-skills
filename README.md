@@ -13,9 +13,9 @@ Maintains a **self-contained handoff ecosystem** in one directory under the proj
 - **`rules.md`** — durable hard rules (destructive-op guards, platform quirks, forbidden directories, conventions). Single source of truth. Edited in place. Outlives every phase.
 - **`decisions.md`** — durable architectural decisions with reasons. Append-mostly. Outlives every phase.
 - **`<date>-<topic>-handoff.md`** — per-phase brief. Current state, phase-ephemeral decisions, risks, open questions. Deleted or superseded when the phase's PR merges.
-- **`<date>-<topic>-handoff-prompt.md`** — terse paste-in prompt (~60–100 lines). Names the three must-read files at the top; restates only phase-ephemeral decisions and gotchas inline. Does **not** inline the durable docs — the fresh agent reads them directly as step 1, which keeps paste size small and prevents stale copies.
+- **`<date>-<topic>-handoff-prompt.md`** — ruthlessly terse paste-in prompt (hard cap ≤50 lines, aim 30–40). An index card: one-sentence context, three mandatory file reads, ≤3 ephemeral decisions, ≤3 gotchas, starting instruction. Does **not** inline the durable docs, re-enumerate the task queue, or recap shipped work — all of that lives in the brief and durable docs, one `Read` call away.
 
-The skill classifies decisions on every run: durable ones land in `rules.md` / `decisions.md` (edited in place), phase-ephemeral ones stay in the brief. Prior phase briefs get superseded or deleted at commit time so the directory doesn't accumulate cruft.
+Detail accumulates in the markdown files; the prompt stays small. On every run the skill classifies decisions (durable → `rules.md` / `decisions.md`, phase-ephemeral → brief) and **prunes**: landed tasks, resolved gotchas, answered open questions, and superseded decisions are deleted; prior merged phase briefs are removed. The ecosystem's size should go down over time, not up.
 
 Triggers on phrases like "create a handoff", "context is getting long", or "give me a prompt for the next session". Can also be invoked via the `/handoff` slash command.
 
