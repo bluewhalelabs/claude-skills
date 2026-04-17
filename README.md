@@ -6,12 +6,16 @@ A collection of [Claude Code](https://claude.com/claude-code) skills and slash c
 
 ### `handoff`
 
-Transfer a long-running Claude Code session's state to a fresh session without losing locked-in decisions, hard rules, or context.
+Transfer a long-running Claude Code session's state to a fresh session without losing durable rules, architectural decisions, or phase-specific context — and without drifting across copies as the project evolves.
 
-Produces two artifacts:
+Maintains a **self-contained handoff ecosystem** in one directory under the project (e.g. `docs/handoffs/`). Four artifacts, two durable and two ephemeral:
 
-- A **brief doc** cataloguing current state, decisions with reasons, risks, and open questions
-- A **paste-in prompt** the user drops into a new session — self-contained, no chained reads required
+- **`rules.md`** — durable hard rules (destructive-op guards, platform quirks, forbidden directories, conventions). Single source of truth. Edited in place. Outlives every phase.
+- **`decisions.md`** — durable architectural decisions with reasons. Append-mostly. Outlives every phase.
+- **`<date>-<topic>-handoff.md`** — per-phase brief. Current state, phase-ephemeral decisions, risks, open questions. Deleted or superseded when the phase's PR merges.
+- **`<date>-<topic>-handoff-prompt.md`** — terse paste-in prompt (~60–100 lines). Names the three must-read files at the top; restates only phase-ephemeral decisions and gotchas inline. Does **not** inline the durable docs — the fresh agent reads them directly as step 1, which keeps paste size small and prevents stale copies.
+
+The skill classifies decisions on every run: durable ones land in `rules.md` / `decisions.md` (edited in place), phase-ephemeral ones stay in the brief. Prior phase briefs get superseded or deleted at commit time so the directory doesn't accumulate cruft.
 
 Triggers on phrases like "create a handoff", "context is getting long", or "give me a prompt for the next session". Can also be invoked via the `/handoff` slash command.
 
@@ -44,8 +48,10 @@ claude-skills/
 │   └── handoff/
 │       ├── SKILL.md
 │       └── assets/
-│           ├── handoff-brief-template.md
-│           └── handoff-prompt-template.md
+│           ├── rules-template.md              # starter for a project's rules.md
+│           ├── decisions-template.md          # starter for a project's decisions.md
+│           ├── handoff-brief-template.md      # per-phase brief
+│           └── handoff-prompt-template.md     # terse paste-in prompt
 └── commands/
     └── handoff.md
 ```
