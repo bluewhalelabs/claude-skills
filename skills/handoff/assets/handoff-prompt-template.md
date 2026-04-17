@@ -1,87 +1,77 @@
 # Handoff Prompt Template
 
-Paste the fenced block below into a fresh Claude Code session. It is self-contained — the agent does not need to read any other file to start executing. The durable sections (rules, decisions) are **inlined verbatim** from `<handoff-dir>/rules.md` and `<handoff-dir>/decisions.md` at emit time, so the fresh agent sees the current state without a second hop.
+Paste the fenced block below into a fresh Claude Code session. It's terse by design — the fresh agent reads `rules.md` and `decisions.md` directly from the repo (step 1 of its work). The prompt itself just names the files, confirms starting state, and lists phase-ephemeral context.
+
+Why terse: inlining the full rules/decisions into every prompt bloats paste size (easily ~5% of a fresh session's context) and creates a stale-copy problem the moment either source file is edited. Named-file reads are cheaper and always current.
 
 ---
 
 ```
 I'm resuming <project-name> on the <branch-name> branch.
-<One sentence: what's done, what's next, whether this is mid-phase or starting fresh.>
+<One sentence: what's done, what's next, mid-phase or starting fresh.>
 
 Worktree / repo root: <absolute path>
 
-Read these in order before doing anything:
+READ THESE THREE FILES BEFORE ANY ACTION — do not skip:
 
 1. <path-to-handoff-brief>
-   — phase-specific state and ephemeral decisions
+   — phase-specific state, ephemeral decisions, open questions
 2. <path-to-rules.md>
-   — durable hard rules (also inlined below)
+   — durable hard rules (destructive-op guards, platform quirks, conventions)
 3. <path-to-decisions.md>
-   — durable architectural decisions (also inlined below)
-4. <path-to-plan-doc-or-PR>
-   — execution detail / authoritative source of what shipped
+   — durable architectural decisions with reasons
 
-Then check these memories (if the project uses auto-memory — otherwise skip):
-- <memory-name>
-- <memory-name>
+Then optionally:
+- <path-to-plan-doc-or-PR>  (execution detail, what shipped)
+- Memory entries (if the project uses auto-memory):
+  <memory-name>, <memory-name>
 
-Current state:
-- <branch> branch, HEAD <SHA>
+Starting state:
+- HEAD <SHA> on <branch>
 - <baseline verification command>: all green (<N tests passing>)
-- Routes / <URL>, / <URL>, / <URL> render (typecheck-clean; user smoke-test: <status>)
-- <any collection ids / external system ids the fresh session will need>
+- Routes / <URL>, / <URL> render (smoke-test: <status>)
+- <any external ids the fresh session will need — collection id, project id, etc.>
 
-Before executing any task, ASK:
-  (a) Has the latest phase been smoke-tested? If not, pause and let the user
-      verify before layering more work.
-  (b) Which task to start with. Default is <Task N>. Remaining task list:
-        <N>. <task one-liner>
-        <N+1>. <task one-liner>
+Ephemeral decisions this phase (not in decisions.md — don't relitigate
+without a real reason):
+- <phase-specific decision with specifics>
+- <phase-specific decision with specifics>
+
+Known gotchas this phase (fix patterns):
+- <gotcha> — <file or pattern>
+- <gotcha> — <file or pattern>
+
+Before executing any task, ASK the user:
+  (a) Has <most-recent-work> been smoke-tested? (The brief says what has
+      and what hasn't.)
+  (b) Which task to start with. Default is <Task N>. Remaining tasks are
+      in the brief; the priority order is:
+        <N>.  <one-liner>
+        <N+1>. <one-liner>
         ...
 
-=== DURABLE HARD RULES (from rules.md — inlined verbatim) ===
+Report progress after each task: one short sentence + commit SHA.
+Ask before deviating from the plan.
 
-<PASTE THE FULL CONTENTS OF rules.md HERE AT EMIT TIME>
-
-=== DURABLE ARCHITECTURAL DECISIONS (from decisions.md — inlined verbatim) ===
-
-<PASTE THE FULL CONTENTS OF decisions.md HERE AT EMIT TIME>
-
-=== EPHEMERAL DECISIONS THIS PHASE (not in decisions.md) ===
-
-These are scope choices specific to THIS phase. Do not relitigate without a
-real reason. Source of truth is the phase brief.
-
-- <phase-specific decision with specifics>
-- <phase-specific decision with specifics>
-
-=== RISKS TO WATCH FOR ===
-
-- <concrete risk + fix pattern or file>
-- <concrete risk + fix pattern or file>
-
-Report progress as you go. After each task: one short sentence of what
-changed + the commit SHA. Ask before deviating from the plan.
-
-Start by <explicit starting instruction — "asking the user X" or "running
-verification commands" or "executing Task N">.
+Start by <explicit first action — "asking the user (a) and (b)" or
+"executing Task N" or "running verification commands">.
 ```
 
 ---
 
 **Why this prompt is shaped the way it is:**
 
-- Names docs by exact path so the agent doesn't search for them.
-- Restates starting-state assertions (test count, routes) so the agent can verify state matches expectation.
-- **Inlines `rules.md` and `decisions.md` verbatim.** The source of truth is in those files (so there's no drift across phases), but the prompt is still paste-and-go.
-- Separates durable (in rules.md/decisions.md) from ephemeral (phase-scoped) so the fresh session knows what's open to negotiation and what isn't.
-- Explicitly says "ask before starting" for the smoke-test question and task selection — protects against eager-agent misfires.
+- Names the three mandatory files at the top in a MANDATORY-READ block. A fresh agent eager to start will see this before anything else.
+- Restates ephemeral decisions + phase-specific gotchas inline. Those are per-phase, so they don't live in `rules.md` / `decisions.md`, but they matter for picking the first task.
+- Lists starting-state assertions so the fresh session can verify it landed where expected.
+- Does NOT inline `rules.md` or `decisions.md`. Those are one `Read` tool call away; regenerating them into the prompt wastes ~5% of context per handoff, doubles paste size, and goes stale the moment anyone edits the source.
+- Explicit "ask the user (a) smoke-test status and (b) which task" — protects against eager agents starting work on unverified state.
 
 **When to use this prompt:**
 
 - Starting a new Claude Code session with this repo as the working directory.
-- Context for the current session has gotten too long and the phase is only partially done — update the phase brief, regenerate this prompt (the inlined rules/decisions get refreshed automatically), and paste into a new session.
+- Context in the current session has gotten too long and the phase is partially done — update the brief (and `rules.md` / `decisions.md` if new durable content emerged), regenerate this prompt, paste into a new session.
 
-**Emit-time reminder for the handoff author:**
+**Author's reminder:**
 
-When you generate this prompt, literally read `rules.md` and `decisions.md` with the Read tool and paste their contents into the marked sections. Don't summarize them — verbatim only. That's what makes the prompt self-contained.
+Keep this prompt short. If it grows past ~100 lines, you're probably inlining content that belongs in the brief or the durable docs.

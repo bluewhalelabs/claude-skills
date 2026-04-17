@@ -11,16 +11,16 @@ When a work session needs to transfer state to a fresh session, produce a handof
 
 Three problems have to be solved simultaneously:
 
-1. **A fresh agent has to act on one paste.** No second reads, no hunting around. The paste-in prompt must be complete.
-2. **Durable content (hard rules, architectural decisions) gets repeated across handoffs and drifts across copies.** Duplication is the failure mode.
-3. **Phase-specific state decays fast.** Current HEAD, what shipped this week, who's doing what — obsolete in days.
+1. **Durable content (hard rules, architectural decisions) gets repeated across handoffs and drifts across copies.** Duplication is the failure mode.
+2. **Phase-specific state decays fast.** Current HEAD, what shipped this week, who's doing what — obsolete in days.
+3. **A fresh agent shouldn't hunt for context.** Name the files it must read, and it will. Don't make it guess.
 
-One file can't solve all three. The four-artifact layout does:
+The four-artifact layout:
 
 - **`rules.md`** — durable hard rules (e.g. "never push to prod without approval", "don't start dev servers", forbidden directories, platform quirks). **Single source of truth.** Edited in place when a new rule emerges. Outlives every phase.
 - **`decisions.md`** — durable architectural decisions with reasons (e.g. "data layer uses view X, not join table Y", "predicate JSON is versioned"). Append-mostly. Outlives every phase. Revised only when a decision is explicitly reversed.
 - **`<date>-<topic>-handoff.md`** — ephemeral phase brief. Current state, what shipped this phase, ephemeral decisions (scope choices specific to this phase), risks, open questions. Deleted or marked superseded when the phase's PR merges.
-- **`<date>-<topic>-handoff-prompt.md`** — the paste-in prompt. **Inlines the full contents of `rules.md` and `decisions.md` verbatim** so the fresh agent gets one self-contained paste. Regenerated on each handoff; the durable source is still in `rules.md` / `decisions.md`.
+- **`<date>-<topic>-handoff-prompt.md`** — the paste-in prompt. **Terse** (~60-100 lines). Names the three docs the fresh agent must read before acting (brief + `rules.md` + `decisions.md`) and restates only phase-ephemeral decisions + known gotchas inline. **Does NOT inline `rules.md` or `decisions.md`** — the fresh agent reads them directly as step 1; regenerating them into the prompt wastes context on every handoff and doubles the paste size.
 
 Everything lives in one directory under the project (e.g. `docs/handoffs/`). The skill never scatters content into `CLAUDE.md`, memory files, or project-specific conventions — those vary by project. The handoff ecosystem is portable: same layout works in any repo.
 
@@ -110,25 +110,25 @@ Use `assets/handoff-brief-template.md`. Key sections:
 - **Open questions the fresh session should NOT decide unilaterally** — real tradeoffs for the user to weigh.
 - **Environment state** — Git HEAD, test count, routes, env var *names* (never values).
 
-**Do NOT re-list hard rules in the brief.** The brief points at `rules.md`; the prompt inlines it.
+**Do NOT re-list hard rules or durable decisions in the brief.** The brief points at `rules.md` / `decisions.md`; the prompt tells the fresh agent to read them.
 
 ### 6. Write the paste-in prompt
 
 Use `assets/handoff-prompt-template.md`. The prompt is a single fenced code block followed by a short explanation of when to use it.
 
+**Keep it terse. Target ~60-100 lines.** The prompt does NOT inline `rules.md` or `decisions.md` — those are named files the fresh agent reads as step 1 of its work. Inlining them doubles paste size, burns ~5% of a fresh session's context on generation, and stays DRY only at emit time (the moment anyone hand-edits either source, the inlined copy goes stale).
+
 **Prompt structure:**
 
-1. One-sentence context: what project, what branch, what state
-2. Numbered list of docs to read in order, with exact paths
-3. Memories to check (if the project uses auto-memory — many don't; skip if N/A)
-4. Confirmation of the starting state (test count, routes, build status) so the fresh session can verify
-5. **Durable rules section — verbatim contents of `rules.md` pasted inline**
-6. **Durable decisions section — verbatim contents of `decisions.md` pasted inline**
-7. **Ephemeral decisions this phase — inline here too** (relevant for the next task; shouldn't require reading the brief)
-8. Known gotchas with the file or fix pattern for each
-9. Explicit starting instruction: "Start with Task N" or "Start by asking the user X"
+1. One-sentence context: what project, what branch, what state.
+2. **Mandatory-read block** (explicit, bold): "READ these three files before any action — (1) phase brief, (2) rules.md, (3) decisions.md. Do not skip." Named paths, no summaries of contents.
+3. Optional: memories to check (many projects don't have auto-memory — skip if N/A).
+4. Starting-state assertions (HEAD SHA, test count, build status, working routes) so the fresh session can verify it landed where expected.
+5. **Ephemeral decisions this phase — restated inline.** These are the phase-scoped tradeoffs the fresh agent needs before picking a task. Restating saves one extra read mid-action.
+6. Known gotchas specific to this phase with fix-pattern file paths.
+7. Explicit starting instruction: "Start by asking the user X" or "Start with Task N".
 
-The prompt must be self-contained. A fresh agent acts on the prompt alone. Reading the brief / rules.md / decisions.md is the follow-up depth check, not a prerequisite for starting.
+The prompt is self-contained for *starting*: it tells the agent WHICH files to read and WHAT to do first. The durable content stays in its named file, one read away.
 
 ### 7. Clean up the prior phase handoff, then commit
 
