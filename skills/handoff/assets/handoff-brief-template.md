@@ -6,7 +6,7 @@
 
 > Durable hard rules live in `<handoff-dir>/rules.md`.
 > Durable architectural decisions live in `<handoff-dir>/decisions.md`.
-> The paste-in prompt inlines both verbatim. **They are not re-listed in this brief.**
+> The paste-in prompt names those files but does **not** inline them. **They are not re-listed in this brief either.** The brief is phase-scoped; durable content stays in its own file.
 
 ---
 

@@ -1,77 +1,62 @@
 # Handoff Prompt Template
 
-Paste the fenced block below into a fresh Claude Code session. It's terse by design — the fresh agent reads `rules.md` and `decisions.md` directly from the repo (step 1 of its work). The prompt itself just names the files, confirms starting state, and lists phase-ephemeral context.
+Paste the fenced block below into a fresh Claude Code session. It is **ruthlessly terse** — hard cap ≤50 lines, aim for 30-40. The fresh agent reads `rules.md`, `decisions.md`, and the phase brief directly from the repo; the prompt just gets it oriented.
 
-Why terse: inlining the full rules/decisions into every prompt bloats paste size (easily ~5% of a fresh session's context) and creates a stale-copy problem the moment either source file is edited. Named-file reads are cheaper and always current.
+**If your prompt is longer than 50 lines, you are inlining content that belongs in the brief.** Task queues, shipped-work summaries, file-by-file annotations, and durable rules/decisions all go in the brief or the durable docs — never in this prompt.
 
 ---
 
 ```
-I'm resuming <project-name> on the <branch-name> branch.
-<One sentence: what's done, what's next, mid-phase or starting fresh.>
+I'm resuming <project-name> on <branch-name>. <One sentence: what phase, roughly where we are.>
 
 Worktree / repo root: <absolute path>
 
 READ THESE THREE FILES BEFORE ANY ACTION — do not skip:
 
 1. <path-to-handoff-brief>
-   — phase-specific state, ephemeral decisions, open questions
 2. <path-to-rules.md>
-   — durable hard rules (destructive-op guards, platform quirks, conventions)
 3. <path-to-decisions.md>
-   — durable architectural decisions with reasons
-
-Then optionally:
-- <path-to-plan-doc-or-PR>  (execution detail, what shipped)
-- Memory entries (if the project uses auto-memory):
-  <memory-name>, <memory-name>
 
 Starting state:
-- HEAD <SHA> on <branch>
-- <baseline verification command>: all green (<N tests passing>)
-- Routes / <URL>, / <URL> render (smoke-test: <status>)
-- <any external ids the fresh session will need — collection id, project id, etc.>
+- HEAD <SHA> on <branch> (pushed: yes/no)
+- <build/typecheck/test status in one line>
+- <last smoke-test status — what was verified, what wasn't>
 
-Ephemeral decisions this phase (not in decisions.md — don't relitigate
-without a real reason):
-- <phase-specific decision with specifics>
-- <phase-specific decision with specifics>
+Ephemeral decisions this phase (don't relitigate; brief has the rest):
+- <phase-specific decision — one line>
+- <phase-specific decision — one line>
 
-Known gotchas this phase (fix patterns):
-- <gotcha> — <file or pattern>
-- <gotcha> — <file or pattern>
+Known gotchas (fix patterns):
+- <gotcha> — <file>
+- <gotcha> — <file>
 
-Before executing any task, ASK the user:
-  (a) Has <most-recent-work> been smoke-tested? (The brief says what has
-      and what hasn't.)
-  (b) Which task to start with. Default is <Task N>. Remaining tasks are
-      in the brief; the priority order is:
-        <N>.  <one-liner>
-        <N+1>. <one-liner>
-        ...
+Before executing, ASK the user:
+  (a) Smoke-test status of <most-recent unverified work>?
+  (b) Which task to start with? Default <Task N>. See brief §execution path for the full queue.
 
-Report progress after each task: one short sentence + commit SHA.
-Ask before deviating from the plan.
-
-Start by <explicit first action — "asking the user (a) and (b)" or
-"executing Task N" or "running verification commands">.
+Report progress after each task: one short sentence + commit SHA. Ask before deviating.
 ```
 
 ---
 
-**Why this prompt is shaped the way it is:**
+**Length check before emitting:**
 
-- Names the three mandatory files at the top in a MANDATORY-READ block. A fresh agent eager to start will see this before anything else.
-- Restates ephemeral decisions + phase-specific gotchas inline. Those are per-phase, so they don't live in `rules.md` / `decisions.md`, but they matter for picking the first task.
-- Lists starting-state assertions so the fresh session can verify it landed where expected.
-- Does NOT inline `rules.md` or `decisions.md`. Those are one `Read` tool call away; regenerating them into the prompt wastes ~5% of context per handoff, doubles paste size, and goes stale the moment anyone edits the source.
-- Explicit "ask the user (a) smoke-test status and (b) which task" — protects against eager agents starting work on unverified state.
+- Count the lines in your prompt. Over 50? Cut.
+- Did you list more than 3 ephemeral decisions? Cut to the 3 that matter most for picking the first task; the rest stay in the brief.
+- Did you list more than 3 gotchas? Same treatment.
+- Did you enumerate remaining tasks with descriptions? Delete them. The brief has the task queue; the prompt just names a default.
+- Did the opening "context sentence" become a paragraph of shipped commits? Collapse it. "Phase 2 has ~N commits on top" is enough.
+- Did you add an "optional files to read" block beyond the three mandatory? Move it to the brief.
 
 **When to use this prompt:**
 
-- Starting a new Claude Code session with this repo as the working directory.
-- Context in the current session has gotten too long and the phase is partially done — update the brief (and `rules.md` / `decisions.md` if new durable content emerged), regenerate this prompt, paste into a new session.
+- Starting a fresh Claude Code session with this repo as the working directory.
+- Mid-session context pressure — regenerate brief + prompt, paste into a new session.
 
-**Author's reminder:**
+**Why this prompt is shaped the way it is:**
 
-Keep this prompt short. If it grows past ~100 lines, you're probably inlining content that belongs in the brief or the durable docs.
+- Three mandatory reads at the top, named and ordered, no summaries. A fresh agent sees this first.
+- Starting-state lines so the agent can verify it landed where expected before acting.
+- Only 3 ephemeral bullets each for decisions and gotchas — the absolute minimum to pick the first task. Deeper context is one `Read` call away in the brief.
+- Explicit "ask the user (a) and (b)" instruction so eager agents don't start work on unverified state.
+- No task queue, no shipped-work summary, no durable content. Those all live in files the agent will read.

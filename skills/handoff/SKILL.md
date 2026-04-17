@@ -20,9 +20,33 @@ The four-artifact layout:
 - **`rules.md`** — durable hard rules (e.g. "never push to prod without approval", "don't start dev servers", forbidden directories, platform quirks). **Single source of truth.** Edited in place when a new rule emerges. Outlives every phase.
 - **`decisions.md`** — durable architectural decisions with reasons (e.g. "data layer uses view X, not join table Y", "predicate JSON is versioned"). Append-mostly. Outlives every phase. Revised only when a decision is explicitly reversed.
 - **`<date>-<topic>-handoff.md`** — ephemeral phase brief. Current state, what shipped this phase, ephemeral decisions (scope choices specific to this phase), risks, open questions. Deleted or marked superseded when the phase's PR merges.
-- **`<date>-<topic>-handoff-prompt.md`** — the paste-in prompt. **Terse** (~60-100 lines). Names the three docs the fresh agent must read before acting (brief + `rules.md` + `decisions.md`) and restates only phase-ephemeral decisions + known gotchas inline. **Does NOT inline `rules.md` or `decisions.md`** — the fresh agent reads them directly as step 1; regenerating them into the prompt wastes context on every handoff and doubles the paste size.
+- **`<date>-<topic>-handoff-prompt.md`** — the paste-in prompt. **Ruthlessly terse — hard cap ≤50 lines, aim for 30-40.** Names the three docs the fresh agent must read and restates almost nothing inline. The brief carries the detail; the prompt just gets the agent oriented and pointed at the right files. **Does NOT inline `rules.md` or `decisions.md`** — regenerating them per handoff doubles paste size and goes stale. **Does NOT re-enumerate the task queue, re-summarize shipped work, or re-list files beyond the three mandatory reads** — all of that is in the brief.
 
 Everything lives in one directory under the project (e.g. `docs/handoffs/`). The skill never scatters content into `CLAUDE.md`, memory files, or project-specific conventions — those vary by project. The handoff ecosystem is portable: same layout works in any repo.
+
+## The context-capture philosophy
+
+The markdown files are where context accumulates. The **prompt is just an index card** pointing at them. When you're tempted to add "one more thing" to the prompt — a commit summary, a gotcha, a task detail — the right move is almost always to put it in the brief (or promote it to the durable doc) and leave the prompt alone.
+
+A handoff's quality is measured by two things:
+
+1. **Is the detail captured somewhere durable?** (It should be — in the brief, `rules.md`, or `decisions.md`.)
+2. **Is the prompt short enough that pasting it doesn't burn 5% of the fresh session's context?** (Target: ≤50 lines.)
+
+Both can be true at the same time only if the markdown files are doing the heavy lifting.
+
+## Size must go down over time
+
+The ecosystem is lossy by design. Every handoff cycle, some content leaves the system:
+
+- Tasks that landed disappear from the task queue.
+- Gotchas that got fixed disappear from the gotchas list.
+- Open questions that got answered either disappear (if the answer was phase-scoped) or promote to `decisions.md` (if durable).
+- Ephemeral decisions that were superseded get deleted.
+
+**If the brief is bigger than it was at the last handoff, something is wrong.** Either a genuinely new phase started (expected) or old content is accumulating (bad — prune it). The durable docs can grow, but slowly, and only with net-new durable content — not by accumulating ephemera that was never promoted properly.
+
+The pruning step (step 7) is where this discipline is enforced. Do not skip it.
 
 ## When to use this skill
 
@@ -116,30 +140,58 @@ Use `assets/handoff-brief-template.md`. Key sections:
 
 Use `assets/handoff-prompt-template.md`. The prompt is a single fenced code block followed by a short explanation of when to use it.
 
-**Keep it terse. Target ~60-100 lines.** The prompt does NOT inline `rules.md` or `decisions.md` — those are named files the fresh agent reads as step 1 of its work. Inlining them doubles paste size, burns ~5% of a fresh session's context on generation, and stays DRY only at emit time (the moment anyone hand-edits either source, the inlined copy goes stale).
+**Hard cap ≤50 lines, aim for 30-40.** The prompt's job is to orient a fresh agent and point at the three files — nothing more. Detail belongs in the brief. If the prompt is creeping past 50 lines, you're inlining content that belongs elsewhere; move it out.
 
-**Prompt structure:**
+The prompt does NOT inline `rules.md` or `decisions.md` — the fresh agent reads them directly as step 1.
 
-1. One-sentence context: what project, what branch, what state.
-2. **Mandatory-read block** (explicit, bold): "READ these three files before any action — (1) phase brief, (2) rules.md, (3) decisions.md. Do not skip." Named paths, no summaries of contents.
-3. Optional: memories to check (many projects don't have auto-memory — skip if N/A).
-4. Starting-state assertions (HEAD SHA, test count, build status, working routes) so the fresh session can verify it landed where expected.
-5. **Ephemeral decisions this phase — restated inline.** These are the phase-scoped tradeoffs the fresh agent needs before picking a task. Restating saves one extra read mid-action.
-6. Known gotchas specific to this phase with fix-pattern file paths.
-7. Explicit starting instruction: "Start by asking the user X" or "Start with Task N".
+**Prompt structure (lean version):**
 
-The prompt is self-contained for *starting*: it tells the agent WHICH files to read and WHAT to do first. The durable content stays in its named file, one read away.
+1. **One sentence** of context: project, branch, where we are. Not a paragraph. Do not enumerate shipped commits here — "Phase 2 has ~19 commits on top" is enough; the brief has the list.
+2. **Mandatory-read block** (explicit, bold): "READ these three files before any action" — brief, `rules.md`, `decisions.md`. Just paths, no per-file summaries.
+3. **Starting state** — 3-5 bullets max: HEAD SHA, build/typecheck status, last smoke-test status. External ids only if the fresh session cannot find them via a single command.
+4. **Ephemeral decisions — 3 bullets max.** Only the handful the agent needs before picking the first task. Longer lists go in the brief.
+5. **Known gotchas — 3 bullets max**, each one line with a file path. Longer lists go in the brief.
+6. **Explicit starting instruction**: "Start by asking the user X" or "Start with Task N." Reference the brief for the task queue — **do not re-enumerate tasks in the prompt**; even a five-task list with descriptions blows the budget.
 
-### 7. Clean up the prior phase handoff, then commit
+**What the prompt does NOT contain:**
 
-When the **new** phase brief supersedes a prior one:
+- The remaining task list with descriptions. (Brief has the table. Prompt says "see brief §execution path".)
+- A second "optional files to read" block beyond the three mandatory. (Brief lists them.)
+- Memory-file bullets more than 2-3 entries. (If there are many, say "check memory index" and move on.)
+- Any summary of what shipped this phase. (Brief has it.)
+- Any hard rule or architectural decision. (Those live in `rules.md` / `decisions.md`.)
 
-- If the prior phase's PR has **merged**, delete the prior `*-handoff.md` and `*-handoff-prompt.md`. Git log preserves the history.
-- If the prior phase is still in flight (not merged), add a one-line `**Superseded by:** <new-brief-path>` banner at the top of the prior brief. The prior brief stays readable but clearly marked.
+The prompt is self-contained for *starting*: it tells the agent WHICH files to read and WHAT to do first. Everything else is one `Read` call away.
 
-Never delete `rules.md` or `decisions.md`. They're durable.
+### 7. Prune before committing
 
-Commit all affected files (durable edits + new brief + new prompt + prior-brief deletion/supersession) in a single commit: `docs: handoff for <topic>`.
+The ecosystem works only if the files shrink as items move out of scope. Every handoff is also a cleanup pass. Do the pruning **before** you commit.
+
+**Phase brief (the one you just wrote or updated):**
+- Tasks that have landed → delete them from the execution path. The brief describes what's next, not what's done. (Shipped work goes in "What already shipped" as a one-liner with SHA; it gets culled on the *next* handoff.)
+- Open questions that have been answered → delete, and if the answer is durable, promote it to `decisions.md`.
+- Gotchas fixed in code → delete. If the fix needs to stay top-of-mind (e.g. requires a specific pattern elsewhere), promote it to `rules.md`.
+- Ephemeral decisions from prior phases that are now moot → delete.
+- "Key facts (snapshot)" that have changed → refresh or delete. Point-in-time data decays fast.
+
+**`rules.md`:**
+- Rule no longer applies (refactored away, tool changed) → delete it.
+- Two rules say the same thing in different words → merge.
+- Rule that turned out to be situational rather than absolute → either sharpen it (add the condition) or move the judgment into `decisions.md`.
+
+**`decisions.md`:**
+- Decision reversed → delete the old entry and write the reversal with its reason. Don't leave stale entries with "~~strikethrough~~"; that just grows the file.
+- Decision that's become load-bearing convention in the code → keep, but trim the exploration notes down to the decision + one-line reason.
+
+**Prior phase's brief and prompt:**
+- Prior phase PR merged → delete the prior `*-handoff.md` and `*-handoff-prompt.md`. Git log preserves history.
+- Prior phase still in flight (not merged) → add a one-line `**Superseded by:** <new-brief-path>` banner at the top of the prior brief. The prior brief stays readable but clearly marked.
+
+Never delete `rules.md` or `decisions.md`. They're durable. But do keep them lean — a 500-line rules file gets skipped by fresh agents.
+
+**Size check:** if any of the four files has grown compared to the prior handoff, justify it. Net-new durable rules or decisions are fine; accumulated ephemera is not.
+
+Commit all affected files (durable edits + pruned entries + new brief + new prompt + prior-brief deletion/supersession) in a single commit: `docs: handoff for <topic>` (note any significant prunes in the body, e.g. "pruned 4 resolved gotchas, promoted 2 ephemerals to decisions.md").
 
 **Always paste the fenced prompt block into your final reply**, in addition to telling the user where the files live. This is a standing user preference — the prompt belongs in the terminal every time. Put the prompt first (easy to copy from scrollback), then a short note with the file paths and commit SHA.
 
@@ -147,7 +199,9 @@ Commit all affected files (durable edits + new brief + new prompt + prior-brief 
 
 Things that look right but produce weak or drift-prone handoffs:
 
-- **Duplicating hard rules in every phase brief.** If the same rule is in this brief AND the prior one AND `rules.md`, you'll have three versions that drift. Keep it in `rules.md` only; inline into the prompt at emit time.
+- **Duplicating hard rules in every phase brief.** If the same rule is in this brief AND the prior one AND `rules.md`, you'll have three versions that drift. Keep it in `rules.md` only; the prompt names the file, it doesn't inline the content.
+- **Re-enumerating the task queue in the prompt.** The brief has it. The prompt's job is to get the agent to *read* the brief, not to recreate it. Five tasks with one-line descriptions is already ~15 lines of prompt budget gone.
+- **Expanding the one-sentence context into a paragraph of shipped work.** "Phase 2 has stacked ~19 commits since <date>" is enough. The fresh agent will see the commit log and the brief.
 - **Inventing project-specific locations for rules.** Don't put hard rules in `CLAUDE.md`, `AGENTS.md`, memory files, `docs/engineering/standards.md`, etc. The handoff ecosystem is self-contained. Other conventions vary across projects; this one doesn't.
 - **Treating the phase brief as an archive.** It's ephemeral. Delete it when the phase lands. Durable content lives in `rules.md` / `decisions.md`.
 - **Collapsing the four artifacts into one.** Each plays a different role; collapsing loses either DRY (durable content drifts) or paste-self-sufficiency (prompt requires extra reads).
