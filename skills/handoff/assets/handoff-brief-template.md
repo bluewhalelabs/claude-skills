@@ -4,17 +4,19 @@
 **Branch:** <git-branch-name>
 **Status:** <one sentence — what's done, what's next, whether code has been written yet>
 
+> Durable hard rules live in `<handoff-dir>/rules.md`.
+> Durable architectural decisions live in `<handoff-dir>/decisions.md`.
+> The paste-in prompt inlines both verbatim. **They are not re-listed in this brief.**
+
 ---
 
 ## What a fresh session needs to read, in order
 
-1. This doc — session-transfer brief with current state, locked-in decisions
-2. <path to plan doc if one exists>
-3. <path to prior handoff doc if one exists>
-4. <path to high-level plan or architecture doc if relevant>
-
-**Memories to check:**
-- <list any auto-memory entries the fresh session should load for context>
+1. This doc — phase-specific state and decisions
+2. `<handoff-dir>/rules.md` — durable rules
+3. `<handoff-dir>/decisions.md` — durable architectural decisions
+4. `<path to plan or PR if relevant>` — execution detail
+5. `<path to prior phase brief if still relevant>` — context for anything carried forward
 
 ---
 
@@ -27,28 +29,28 @@ Be specific. List commits by SHA or one-line description. Name route paths. Name
 
 **Baseline verification:**
 - `<typecheck command>` — <result>
-- `<lint command>` — <result>
 - `<build command>` — <result>
 - `<test command>` — <N tests passing>
 - Visual verification of <route> confirmed by the user / pending
 
 ---
 
-## Decisions locked in during this session
+## Ephemeral decisions this phase
 
-These are not up for debate without a real reason. If the fresh session wants to reopen any of these, it should ask first.
+These are scope choices or tradeoffs specific to **this phase only**. They are not durable — they apply to this phase's work and won't carry into the next without re-scoping.
 
-1. **<Decision>.** <One-line reason.>
-2. **<Decision>.** <One-line reason.>
-3. **<Decision>.** <One-line reason.>
+(Durable architectural decisions are in `decisions.md` and inlined in the prompt.)
 
-(Keep each decision specific. "Use a hybrid data layer" is too abstract — say what that means concretely: "Pipeline data reads from `report_run_outputs` where `output_type='pipeline-graph'`, backfill via `scripts/backfill-pipeline-graph.ts`, route at `/reports/pipeline/[edition]` with edition as a number like `2`.")
+1. **<Phase-specific decision>.** <One-line reason.>
+2. **<Phase-specific decision>.** <One-line reason.>
+
+If you catch yourself writing an entry here that's true across phases, move it to `decisions.md` instead.
 
 ---
 
 ## Key facts (snapshot at <date>)
 
-Point-in-time facts about the DB, external systems, file layouts, or anything the fresh session will need. These decay — the fresh session should re-verify before acting on them.
+Point-in-time facts the fresh session will need. These decay — re-verify before acting on them.
 
 - <fact>
 - <fact>
@@ -66,18 +68,17 @@ Point-in-time facts about the DB, external systems, file layouts, or anything th
 
 Point at the plan doc for per-task details — don't re-describe them here.
 
-**Expected commit count:** <N>
+**Expected commit count (remaining):** <N>
 **Expected final test count:** <N>
 
 ---
 
-## Hard rules carried from prior phases
+## New rules and decisions added this session
 
-These are things the fresh session would otherwise default-break. Restate them explicitly.
+If this session produced content promoted to `rules.md` or `decisions.md`, list pointers here (not the content itself — that lives in the durable docs). Helps the fresh session know what just changed.
 
-1. **<Rule>.** <Brief reason.>
-2. **<Rule>.** <Brief reason.>
-3. **<Rule>.** <Brief reason.>
+- Added rule: "<rule title>" → `rules.md`
+- Added decision: "<decision title>" → `decisions.md`
 
 ---
 
@@ -90,17 +91,10 @@ Concrete pitfalls the fresh session might hit. Name the file or task where each 
 
 ---
 
-## The handoff prompt to paste into a fresh session
-
-A ready-to-copy prompt lives at <path to handoff-prompt file>. Open it, copy the fenced code block, paste into a new Claude Code session with this repo as the working directory.
-
----
-
 ## Open questions the fresh session should NOT decide unilaterally
 
 Things with real tradeoffs the user needs to weigh. The fresh session should ask, not decide.
 
-- <question>
 - <question>
 - <question>
 
