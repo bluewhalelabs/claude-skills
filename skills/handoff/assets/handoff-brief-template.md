@@ -1,22 +1,28 @@
-# <Phase or Topic> Handoff — Session Transfer Brief
+# <Initiative or Topic> Handoff — Session Transfer Brief
 
 **Date:** <YYYY-MM-DD>
+**Surface:** `<surface>` (e.g. compass, studio, atlas, polygraph, boost, ad-analysis)
 **Branch:** <git-branch-name>
-**Status:** <one sentence — what's done, what's next, whether code has been written yet>
+**Status:** <one sentence — what's done, what's next, whether code has been written yet. Use `paused (<reason>)` or `superseded by <path>` if not active.>
 
-> Durable hard rules live in `<handoff-dir>/rules.md`.
-> Durable architectural decisions live in `<handoff-dir>/decisions.md`.
-> The paste-in prompt names those files but does **not** inline them. **They are not re-listed in this brief either.** The brief is phase-scoped; durable content stays in its own file.
+> Durable rules live in two places, by scope:
+> — `<handoff-dir>/<surface>/rules.md` — surface-specific rules
+> — `<handoff-dir>/rules.md` — cross-cutting rules
+> Durable decisions follow the same split (`<surface>/decisions.md` vs top-level `decisions.md`).
+> The paste-in prompt names all four files but does **not** inline them. **They are not re-listed in this brief either.** The brief is initiative-scoped; durable content stays in its own file.
+> Cross-surface initiatives: the brief lives under the **primary** surface and lists secondary surfaces touched in the execution path below.
 
 ---
 
 ## What a fresh session needs to read, in order
 
-1. This doc — phase-specific state and decisions
-2. `<handoff-dir>/rules.md` — durable rules
-3. `<handoff-dir>/decisions.md` — durable architectural decisions
-4. `<path to plan or PR if relevant>` — execution detail
-5. `<path to prior phase brief if still relevant>` — context for anything carried forward
+1. This doc — initiative-specific state and decisions
+2. `<handoff-dir>/<surface>/rules.md` — surface-specific rules (most relevant first)
+3. `<handoff-dir>/<surface>/decisions.md` — surface-specific decisions
+4. `<handoff-dir>/rules.md` — cross-cutting rules
+5. `<handoff-dir>/decisions.md` — cross-cutting decisions
+6. `<path to plan or PR if relevant>` — execution detail
+7. `<path to prior phase brief if still relevant>` — context for anything carried forward
 
 ---
 
@@ -37,14 +43,14 @@ Be specific. List commits by SHA or one-line description. Name route paths. Name
 
 ## Ephemeral decisions this phase
 
-These are scope choices or tradeoffs specific to **this phase only**. They are not durable — they apply to this phase's work and won't carry into the next without re-scoping.
+These are scope choices or tradeoffs specific to **this initiative only**. They are not durable — they apply to this initiative's work and won't carry into the next without re-scoping.
 
-(Durable architectural decisions are in `decisions.md` and inlined in the prompt.)
+(Durable decisions are in the surface and top-level `decisions.md` files; the prompt names them but does not inline them.)
 
-1. **<Phase-specific decision>.** <One-line reason.>
-2. **<Phase-specific decision>.** <One-line reason.>
+1. **<Initiative-specific decision>.** <One-line reason.>
+2. **<Initiative-specific decision>.** <One-line reason.>
 
-If you catch yourself writing an entry here that's true across phases, move it to `decisions.md` instead.
+If you catch yourself writing an entry here that's true across initiatives, classify it: surface-specific → `<surface>/decisions.md`; cross-cutting → top-level `decisions.md`. Tie-breaker: when in doubt, promote to cross-cutting.
 
 ---
 
@@ -68,6 +74,8 @@ Point-in-time facts the fresh session will need. These decay — re-verify befor
 
 Point at the plan doc for per-task details — don't re-describe them here.
 
+**Cross-surface touchpoints (if any):** <list secondary surfaces this initiative touches and the file/route under each, e.g. "studio: `apps/unum/app/studio/api/library/route.ts` for federation"; delete this line if not applicable>
+
 **Expected commit count (remaining):** <N>
 **Expected final test count:** <N>
 
@@ -75,10 +83,10 @@ Point at the plan doc for per-task details — don't re-describe them here.
 
 ## New rules and decisions added this session
 
-If this session produced content promoted to `rules.md` or `decisions.md`, list pointers here (not the content itself — that lives in the durable docs). Helps the fresh session know what just changed.
+If this session produced content promoted to durable docs, list pointers here (not the content itself — that lives in the durable docs). Mark the destination so the fresh session knows where to look.
 
-- Added rule: "<rule title>" → `rules.md`
-- Added decision: "<decision title>" → `decisions.md`
+- Added rule: "<rule title>" → `<surface>/rules.md` _or_ top-level `rules.md`
+- Added decision: "<decision title>" → `<surface>/decisions.md` _or_ top-level `decisions.md`
 
 ---
 

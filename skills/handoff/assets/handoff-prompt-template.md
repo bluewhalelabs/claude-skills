@@ -1,30 +1,32 @@
 # Handoff Prompt Template
 
-Paste the fenced block below into a fresh Claude Code session. It is **ruthlessly terse** — hard cap ≤50 lines, aim for 30-40. The fresh agent reads `rules.md`, `decisions.md`, and the phase brief directly from the repo; the prompt just gets it oriented.
+Paste the fenced block below into a fresh Claude Code session. It is **ruthlessly terse** — hard cap ≤50 lines, aim for 30-40. The fresh agent reads the brief plus the four durable docs (surface + cross-cutting, rules + decisions) directly from the repo; the prompt just gets it oriented.
 
 **If your prompt is longer than 50 lines, you are inlining content that belongs in the brief.** Task queues, shipped-work summaries, file-by-file annotations, and durable rules/decisions all go in the brief or the durable docs — never in this prompt.
 
 ---
 
 ```
-I'm resuming <project-name> on <branch-name>. <One sentence: what phase, roughly where we are.>
+I'm resuming <project-name> on <branch-name>, working in the `<surface>` surface. <One sentence: what initiative, roughly where we are.>
 
 Worktree / repo root: <absolute path>
 
-READ THESE THREE FILES BEFORE ANY ACTION — do not skip:
+READ THESE FIVE FILES BEFORE ANY ACTION — do not skip. Order: most-specific first.
 
-1. <path-to-handoff-brief>
-2. <path-to-rules.md>
-3. <path-to-decisions.md>
+1. <path-to-initiative-brief>                         (initiative state — this phase)
+2. <path-to-surface-rules.md>                         (surface-specific rules)
+3. <path-to-surface-decisions.md>                     (surface-specific decisions)
+4. <path-to-top-level-rules.md>                       (cross-cutting rules)
+5. <path-to-top-level-decisions.md>                   (cross-cutting decisions)
 
 Starting state:
 - HEAD <SHA> on <branch> (pushed: yes/no)
 - <build/typecheck/test status in one line>
 - <last smoke-test status — what was verified, what wasn't>
 
-Ephemeral decisions this phase (don't relitigate; brief has the rest):
-- <phase-specific decision — one line>
-- <phase-specific decision — one line>
+Ephemeral decisions this initiative (don't relitigate; brief has the rest):
+- <initiative-specific decision — one line>
+- <initiative-specific decision — one line>
 
 Known gotchas (fix patterns):
 - <gotcha> — <file>
@@ -55,7 +57,8 @@ Report progress after each task: one short sentence + commit SHA. Ask before dev
 
 **Why this prompt is shaped the way it is:**
 
-- Three mandatory reads at the top, named and ordered, no summaries. A fresh agent sees this first.
+- Five mandatory reads at the top, ordered most-specific first (initiative → surface durable → cross-cutting durable). A fresh agent sees this first.
+- Each individual durable doc is small (because the layered model splits surface from cross-cutting), so reading five focused files is cheaper than reading two monoliths.
 - Starting-state lines so the agent can verify it landed where expected before acting.
 - Only 3 ephemeral bullets each for decisions and gotchas — the absolute minimum to pick the first task. Deeper context is one `Read` call away in the brief.
 - Explicit "ask the user (a) and (b)" instruction so eager agents don't start work on unverified state.

@@ -1,6 +1,10 @@
-# Hard Rules
+# Hard Rules — Cross-Cutting
 
-Durable rules that carry across every phase of this project. Single source of truth — handoff prompts inline this file verbatim so fresh sessions see the current list without duplication.
+**Scope: project-wide.** Rules in this file apply regardless of which surface (compass, studio, atlas, etc.) you're working in — safety boundaries, repo-wide conventions, platform/tooling quirks that bite anywhere.
+
+**For surface-specific rules, see `<surface>/rules.md`.** Examples: editor-only invariants, library-only data access patterns, polygraph-only verdict semantics. The handoff skill's classification step decides which file a new rule lands in; the tie-breaker is "when in doubt, promote to cross-cutting" — duplication across surface files is the failure mode.
+
+Single source of truth. Handoff prompts name this file as a mandatory read but never inline it.
 
 Rules are grouped below for readability. Add new rules under the best-fitting section with a one-line reason (the reason is what lets a future agent judge edge cases; rules without reasons get debated or ignored). Use ISO dates as sub-headers when rules are added in response to a specific incident, so readers can see the history.
 

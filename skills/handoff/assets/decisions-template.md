@@ -1,6 +1,10 @@
-# Durable Decisions
+# Durable Decisions — Cross-Cutting
 
-Architectural and design decisions that carry across phases. Single source of truth — handoff prompts inline this file verbatim so fresh sessions see the current list without duplication.
+**Scope: project-wide.** Decisions in this file shape the project regardless of which surface (compass, studio, atlas, etc.) you're working in — data layer choices, repo-wide conventions, cross-cutting architectural calls.
+
+**For surface-specific decisions, see `<surface>/decisions.md`.** Examples: editor coordinate system, library federation read path, ad-pipeline scoring model. The handoff skill's classification step decides which file a new decision lands in; the tie-breaker is "when in doubt, promote to cross-cutting" — duplication across surface files is the failure mode.
+
+Single source of truth. Handoff prompts name this file as a mandatory read but never inline it.
 
 Append-mostly. A decision is revised only when explicitly reversed; keep the old entry with a "Superseded by #N" note so readers can see the evolution.
 
